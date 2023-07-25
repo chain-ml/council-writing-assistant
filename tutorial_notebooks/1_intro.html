@@ -3,7 +3,7 @@
 <html lang="en">
 <head><meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>3_article_section_writer_skill</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+<title>1_intro</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 <style type="text/css">
     pre { line-height: 125%; }
 td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
@@ -7442,356 +7442,31 @@ a.anchor-link {
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h1 id="Skill-Implementation:-Article-Section-Writer">Skill Implementation: Article Section Writer<a class="anchor-link" href="#Skill-Implementation:-Article-Section-Writer">¶</a></h1><p>Let's continue by implementing a Skill for writing or revising article sections.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="kn">from</span> <span class="nn">council.skills</span> <span class="kn">import</span> <span class="n">SkillBase</span>
-<span class="kn">from</span> <span class="nn">council.contexts</span> <span class="kn">import</span> <span class="n">ChatMessage</span><span class="p">,</span> <span class="n">ChainContext</span>
-<span class="kn">from</span> <span class="nn">council.runners</span> <span class="kn">import</span> <span class="n">Budget</span>
-<span class="kn">from</span> <span class="nn">council.llm</span> <span class="kn">import</span> <span class="n">LLMBase</span><span class="p">,</span> <span class="n">LLMMessage</span>
-
-<span class="kn">from</span> <span class="nn">string</span> <span class="kn">import</span> <span class="n">Template</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Once again, we'll start by designing our prompts for this skill.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="n">system_prompt</span> <span class="o">=</span> <span class="s2">"""You are an expert research writer and editor. </span>
-<span class="s2">Your role is to write or revise detailed sections of research articles in markdown format."""</span>
-
-<span class="n">main_prompt_template</span> <span class="o">=</span> <span class="n">Template</span><span class="p">(</span><span class="s2">"""</span>
-<span class="s2"># Task Description</span>
-<span class="s2">Your task is to write specific sections of research articles using your </span>
-<span class="s2">own knowledge or using information available using various sources. </span>
-<span class="s2">First consider the CONVERSATION HISTORY, ARTICLE OUTLINE, ARTICLE, COMMENTS, and INSTRUCTIONS.</span>
-<span class="s2">Then revise the article according to the context and instructions provided below. </span>
-<span class="s2">The entire REVISED ARTICLE should be written using markdown formatting. </span>
-
-<span class="s2">## CONVERSATION HISTORY</span>
-<span class="s2">$conversation_history</span>
-
-<span class="s2">## ARTICLE OUTLINE</span>
-<span class="s2">$outline</span>
-
-<span class="s2">## ARTICLE</span>
-<span class="s2">$article</span>
-
-<span class="s2">## INSTRUCTIONS</span>
-<span class="s2">$instructions</span>
-
-<span class="s2">## REVISED ARTICLE</span>
-<span class="s2">"""</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>With this prompt, we will be asking an LLM to write or revise particular parts of an article. The <code>$</code>-variables indicate the skill's expected inputs, and just as we did for the OutlineWriterSkill, we will access values for these variables at runtime from the ChainContext.</p>
-<p>Let's proceed by building the <strong>SectionWriterSkill</strong>.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="k">class</span> <span class="nc">SectionWriterSkill</span><span class="p">(</span><span class="n">SkillBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Write a specific section of an article."""</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm</span><span class="p">:</span> <span class="n">LLMBase</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Build a new SectionWriterSkill."""</span>
-
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"SectionWriterSkill"</span><span class="p">)</span>
-        
-        <span class="bp">self</span><span class="o">.</span><span class="n">llm</span> <span class="o">=</span> <span class="n">llm</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span> <span class="o">=</span> <span class="s2">"You are an expert..."</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">main_prompt_template</span> <span class="o">=</span> <span class="n">Template</span><span class="p">(</span><span class="s2">"# Task Description ..."</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Next we implement the skill's <code>execute</code> function.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">ChainContext</span><span class="p">,</span> <span class="n">_budget</span><span class="p">:</span> <span class="n">Budget</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatMessage</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">"""Execute `SectionWriterSkill`."""</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Just as we did for the other skill, we can always access the conversation history directly from the <code>context</code>.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="n">conversation_history</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">kind</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">messages</span>
-<span class="p">]</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Next we will access parts of the context that are specific to this application.</p>
-<p><strong>Note:</strong> The contents of <code>context.last_message</code> (both the <code>message</code> and <code>data</code> fields) depend on how they were populated by the Controller. This is because the Controller is responsible for <em>deciding how invoke Chains and their underlying Skills</em>, like the one we're designing now. By implementing this Skill's <code>execute</code> function with the expectation that <code>article</code>, <code>outline</code>, and <code>iteration</code> all exist, we'll need to make sure that we design and implement a Controller that will provide these.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="c1"># Get the instructions</span>
-<span class="n">instructions</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">message</span>
-
-<span class="c1"># Get the article</span>
-<span class="n">article</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">'article'</span><span class="p">]</span>
-
-<span class="c1"># Get the outline</span>
-<span class="n">outline</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">'outline'</span><span class="p">]</span>
-
-<span class="c1"># Get the iteration</span>
-<span class="n">iteration</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">'iteration'</span><span class="p">]</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Now that we've accessed all of these state values from the context, we can fill in the main prompt, call the LLM, and format a response.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="n">main_prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_prompt_template</span><span class="o">.</span><span class="n">substitute</span><span class="p">(</span>
-    <span class="n">conversation_history</span><span class="o">=</span><span class="n">conversation_history</span><span class="p">,</span>
-    <span class="n">outline</span><span class="o">=</span><span class="n">outline</span><span class="p">,</span>
-    <span class="n">article</span><span class="o">=</span><span class="n">article</span><span class="p">,</span>
-    <span class="n">instructions</span><span class="o">=</span><span class="n">instructions</span>
-<span class="p">)</span>
-
-<span class="n">messages_to_llm</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="n">LLMMessage</span><span class="o">.</span><span class="n">system_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">),</span>
-    <span class="n">LLMMessage</span><span class="o">.</span><span class="n">assistant_message</span><span class="p">(</span>
-        <span class="n">main_prompt</span>
-    <span class="p">),</span>
-<span class="p">]</span>
-
-<span class="n">llm_response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">post_chat_request</span><span class="p">(</span><span class="n">messages</span><span class="o">=</span><span class="n">messages_to_llm</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-
-<span class="k">return</span> <span class="n">ChatMessage</span><span class="o">.</span><span class="n">skill</span><span class="p">(</span>
-    <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-    <span class="n">message</span><span class="o">=</span><span class="s2">"I've written or edited the article and placed it in the 'data' field."</span><span class="p">,</span>
-    <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">'article'</span><span class="p">:</span> <span class="n">llm_response</span><span class="p">,</span> <span class="s1">'instructions'</span><span class="p">:</span> <span class="n">instructions</span><span class="p">,</span> <span class="s1">'iteration'</span><span class="p">:</span> <span class="n">iteration</span><span class="p">},</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Finally, here is the entire SectionWriterSkill implementation.</p>
-</div>
-</div>
-</div>
-</div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div>
-<div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
-<div class="cm-editor cm-s-jupyter">
-<div class="highlight hl-python"><pre><span></span><span class="k">class</span> <span class="nc">SectionWriterSkill</span><span class="p">(</span><span class="n">SkillBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Write a specific section of an article."""</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">llm</span><span class="p">:</span> <span class="n">LLMBase</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Build a new SectionWriterSkill."""</span>
-
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">"SectionWriterSkill"</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">llm</span> <span class="o">=</span> <span class="n">llm</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span> <span class="o">=</span> <span class="s2">"""You are an expert research writer and editor. </span>
-<span class="s2">        Your role is to write or revise detailed sections of research articles in markdown format."""</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">main_prompt_template</span> <span class="o">=</span> <span class="n">Template</span><span class="p">(</span><span class="s2">"""</span>
-<span class="s2">        # Task Description</span>
-<span class="s2">        Your task is to write specific sections of research articles using your own knowledge </span>
-<span class="s2">        or using information available using various sources. </span>
-<span class="s2">        First consider the CONVERSATION HISTORY, ARTICLE OUTLINE, ARTICLE, COMMENTS, and INSTRUCTIONS.</span>
-<span class="s2">        Then revise the article according to the context and instructions provided below. </span>
-<span class="s2">        The entire REVISED ARTICLE should be written using markdown formatting. </span>
-
-<span class="s2">        ## CONVERSATION HISTORY</span>
-<span class="s2">        $conversation_history</span>
-
-<span class="s2">        ## ARTICLE OUTLINE</span>
-<span class="s2">        $outline</span>
-
-<span class="s2">        ## ARTICLE</span>
-<span class="s2">        $article</span>
-
-<span class="s2">        ## INSTRUCTIONS</span>
-<span class="s2">        $instructions</span>
-
-<span class="s2">        ## REVISED ARTICLE</span>
-<span class="s2">        """</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">ChainContext</span><span class="p">,</span> <span class="n">_budget</span><span class="p">:</span> <span class="n">Budget</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatMessage</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">"""Execute `SectionWriterSkill`."""</span>
-
-        <span class="c1"># Get the chat message history</span>
-        <span class="n">conversation_history</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">kind</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">m</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">messages</span>
-        <span class="p">]</span>
-
-        <span class="c1"># Get the article</span>
-        <span class="n">article</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">'article'</span><span class="p">]</span>
-        
-        <span class="c1"># Get the outline</span>
-        <span class="n">outline</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">'outline'</span><span class="p">]</span>
-
-        <span class="c1"># Get the iteration</span>
-        <span class="n">iteration</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">'iteration'</span><span class="p">]</span>
-       
-        <span class="c1"># Get the instructions</span>
-        <span class="n">instructions</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">last_message</span><span class="o">.</span><span class="n">message</span>
-        
-        <span class="n">main_prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">main_prompt_template</span><span class="o">.</span><span class="n">substitute</span><span class="p">(</span>
-            <span class="n">conversation_history</span><span class="o">=</span><span class="n">conversation_history</span><span class="p">,</span>
-            <span class="n">outline</span><span class="o">=</span><span class="n">outline</span><span class="p">,</span>
-            <span class="n">article</span><span class="o">=</span><span class="n">article</span><span class="p">,</span>
-            <span class="n">revision_instructions</span><span class="o">=</span><span class="n">instructions</span>
-        <span class="p">)</span>
-
-        <span class="n">messages_to_llm</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">LLMMessage</span><span class="o">.</span><span class="n">system_message</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">),</span>
-            <span class="n">LLMMessage</span><span class="o">.</span><span class="n">assistant_message</span><span class="p">(</span>
-                <span class="n">main_prompt</span>
-            <span class="p">),</span>
-        <span class="p">]</span>
-
-        <span class="n">llm_response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llm</span><span class="o">.</span><span class="n">post_chat_request</span><span class="p">(</span><span class="n">messages</span><span class="o">=</span><span class="n">messages_to_llm</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-
-        <span class="k">return</span> <span class="n">ChatMessage</span><span class="o">.</span><span class="n">skill</span><span class="p">(</span>
-            <span class="n">source</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">message</span><span class="o">=</span><span class="s2">"I've written or edited the article and placed it in the 'data' field."</span><span class="p">,</span>
-            <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s1">'article'</span><span class="p">:</span> <span class="n">llm_response</span><span class="p">,</span> <span class="s1">'instructions'</span><span class="p">:</span> <span class="n">instructions</span><span class="p">,</span> <span class="s1">'iteration'</span><span class="p">:</span> <span class="n">iteration</span><span class="p">},</span>
-        <span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper" tabindex="0">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<p>Next we will move on to defining one of the most important parts of a Council Agent - the <strong>Controller</strong>.</p>
+<h1 id="Advanced-Tutorial:-Creating-a-research-writing-assistant-with-Council">Advanced Tutorial: Creating a research writing assistant with Council<a class="anchor-link" href="#Advanced-Tutorial:-Creating-a-research-writing-assistant-with-Council">¶</a></h1><p><strong>Heads up!</strong> If you want to skip to the end and try out the finished code, you can find it in this <a href="https://github.com/chain-ml/council-writing-assistant">repository</a>.</p>
+<p>Council is an agent-based framework for composable AI. It provides an opinionated but flexible set of abstractions that encourages the division of AI tasks into more specialized functions and roles. This tutorial is the first in a series that will explore how Council can be used to create a powerful research assistant. Over the next few weeks, we will extend the tutorial with lots of new features. If you haven't read the <strong>Getting Started</strong> material, we recommend going back to read those first.</p>
+<h2 id="Motivation">Motivation<a class="anchor-link" href="#Motivation">¶</a></h2><p>Suppose that you want to ask an LLM to "Write a research article about the history of video games." This is quite a high-level goal to give an LLM. That said, GPT-4 will handle this by writing a coherent article with around 10 top level sections consisting of one paragaraph each. While certainly impressive, we think that GPT-4 and other LLMs can do better and go further with a little bit of <em>planning</em>. Using Council, and especially the <strong>Controller</strong> abstraction, we can implement a custom agent that leverages planning to write more detailed articles.</p>
+<h2 id="Solution-Architecture">Solution Architecture<a class="anchor-link" href="#Solution-Architecture">¶</a></h2><p>In this first tutorial, we're going to start relatively simply and build a single Agent with just two Chains (with only one skill each) - one for writing article outlines (planning) and another for writing article sections (writing). For now, we won't define any additional skills that could be useful for research (e.g. web search) - but we'll add these later in this tutorial series, so stay tuned. Instead, we're going to focus on leveraging the <strong>Controller</strong> abstraction to enable iterative planning and refinement.</p>
+<p>As such, our solution will have these components:</p>
+<ul>
+<li>Two Skills: <code>OutlineWriterSkill</code> and <code>SectionWriterSkill</code></li>
+<li>Two Chains (with one Skill each): <code>outline_chain</code> and <code>writer_chain</code></li>
+<li>A customized Controller: <code>WritingAssistantController</code></li>
+<li>A (minimally) customized Evaluator: <code>BasicEvaluatorWithSource</code></li>
+</ul>
+<p>Before diving into the code, let's take a look at our solution architecture. Dotted lines indicate conditional/flexible flow, while solid lines always execute.</p>
+<img alt="SVG Image" src="mermaid-diagram-2023-07-25-145533.svg" width="600"/>
+<p><strong>User Messages</strong> will first be handled by the Controller - specifically its <code>get_plan</code> function. It uses an LLM call to create an execution plan that involves its Chains. In contrast to Council's built-in LLMController, our custom Controller will generate an execution plan that includes <strong>instructions</strong> and other <strong>state values</strong>. In other words, the Controller will decide not only which Chains to add to the execution plan, but also <em>how</em> to execute them.</p>
+<p>For example, in an Agent's first iteration of handling a User Message, it may only return a plan to invoke <code>ArticleOutlineWriter</code>. In the second iteration, the Controller may return a plan to invoke the <code>ArticleSectionWriter</code> many time, each with instructions for different sections to write.</p>
+<p>After Chains and their underlying Skills have been executed according to the Controller's plan, they will passed into an Evaluator. In this tutorial installment, we're using a very minimally customized <code>BasicEvaluator</code> - the small change will be explained later. As such, the Evaluator is effectively a pass-through for now. In the coming weeks, we'll show how customized Evalutors can significantly increase the quality of generated articles - so stay tuned for that, too!</p>
+<p>After Evaluation is complete, the Controller's <code>select_responses</code> function is always invoked. This function is responsible for interpreting the Evaluator's input and deciding whether to return a result to the "requesting agent" (which could be a human user or another Council agent). In this solution, an LLM call is used to review all of the progress made so far and decide whether to <code>KEEP EDITING</code> or to <code>RETURN ARTICLE</code>.</p>
+<h2 id="Next-Steps">Next Steps<a class="anchor-link" href="#Next-Steps">¶</a></h2><p>The remainder of this tutorial breaks down the <a href="https://github.com/chain-ml/council-writing-assistant">solution</a> sequentially:</p>
+<ol>
+<li>Outline Writer Skill</li>
+<li>Section Writer Skill</li>
+<li>Controller</li>
+<li>Evaluator</li>
+<li>Agent App</li>
+</ol>
 </div>
 </div>
 </div>

@@ -7963,6 +7963,8 @@ a.anchor-link {
     <span class="p">]</span>
     <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_llm</span><span class="o">.</span><span class="n">post_chat_request</span><span class="p">(</span><span class="n">messages</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_outline</span> <span class="o">=</span> <span class="n">response</span>
+<span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">outlines</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_outline</span> <span class="o">=</span> <span class="n">outlines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 </pre></div>
 </div>
 </div>
@@ -8017,6 +8019,8 @@ a.anchor-link {
     <span class="p">]</span>
     <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_llm</span><span class="o">.</span><span class="n">post_chat_request</span><span class="p">(</span><span class="n">messages</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_article</span> <span class="o">=</span> <span class="n">response</span>
+<span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">articles</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_article</span> <span class="o">=</span> <span class="n">articles</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 </pre></div>
 </div>
 </div>
