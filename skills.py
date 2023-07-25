@@ -139,7 +139,7 @@ class SectionWriterSkill(SkillBase):
             conversation_history=conversation_history,
             outline=outline,
             article=article,
-            revision_instructions=instructions
+            instructions=instructions
         )
 
         messages_to_llm = [
