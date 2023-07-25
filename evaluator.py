@@ -8,7 +8,6 @@ from council.contexts import (
 from council.runners.budget import Budget
 from council.evaluators.evaluator_base import EvaluatorBase
 
-
 class BasicEvaluatorWithSource(EvaluatorBase):
 
     """

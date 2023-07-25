@@ -5,8 +5,6 @@ from council.llm import LLMBase, LLMMessage
 
 from string import Template
 
-
-
 class OutlineWriterSkill(SkillBase):
     """Write or revise the outline of an article."""
 

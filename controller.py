@@ -9,7 +9,7 @@ import logging
 from string import Template
 from typing import List, Tuple
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("council")
 
 class WritingAssistantController(ControllerBase):
     """
@@ -105,7 +105,7 @@ class WritingAssistantController(ControllerBase):
         ]
 
         response = self._llm.post_chat_request(messages)[0]
-        logger.debug(f"llm response: {response}")
+        logger.debug(f"controller get_plan response: {response}")
 
         parsed = response.splitlines()
         parsed = [p for p in parsed if len(p) > 0]
@@ -187,10 +187,13 @@ class WritingAssistantController(ControllerBase):
         Your task is to combine one or more article outlines into a single one written in markdown format.
 
         # Instructions
-        Read the CHAT HISTORY and POSSIBLE OUTLINES. Then respond with a single article outline that best matches what is being requested in the CHAT HISTORY.
+        Read the CHAT HISTORY, EXISTING OUTLINE, and POSSIBLE OUTLINES. Then respond with a single article outline that best matches what is being requested in the CHAT HISTORY.
 
         ## CONVERSATION HISTORY
         $conversation_history
+
+        ## EXISTING OUTLINE
+        $existing_outline
 
         ## POSSIBLE OUTLINES
         $possible_outlines
@@ -198,13 +201,14 @@ class WritingAssistantController(ControllerBase):
         ## OUTLINE
         """)
 
-        if len(outlines) > 1:
+        if len(outlines) > 0:
             messages = [
                 LLMMessage.system_message(system_prompt),
                 LLMMessage.user_message(
                     main_prompt_template.substitute(
                         conversation_history=conversation_history,
-                        possible_outlines = outlines
+                        existing_outline=self._outline,
+                        possible_outlines=outlines
                     )
                 ),
             ]
@@ -219,23 +223,27 @@ class WritingAssistantController(ControllerBase):
         Your task is to combine one or more partial articles into a single one written in markdown format.
 
         # Instructions
-        Read the CHAT HISTORY and PARTIAL ARTICLES. Then respond with a single article that best matches what is being requested in the CHAT HISTORY.
+        Read the CHAT HISTORY, EXISTING ARTICLE, and PARTIAL ARTICLES. Then respond with a single article that best matches what is being requested in the CHAT HISTORY.
 
         ## CONVERSATION HISTORY
         $conversation_history
 
+        ## EXISTING ARTICLE
+        $existing_article
+                                        
         ## PARTIAL ARTICLES
         $partial_articles
 
         ## ARTICLE
         """)
 
-        if len(articles) > 1:
+        if len(articles) > 0:
             messages = [
                 LLMMessage.system_message(system_prompt),
                 LLMMessage.user_message(
                     main_prompt_template.substitute(
                         conversation_history=conversation_history,
+                        existing_article=self._article,
                         partial_articles = articles
                     )
                 ),
@@ -286,7 +294,9 @@ class WritingAssistantController(ControllerBase):
         ]
 
         response = self._llm.post_chat_request(messages)[0]
-        logger.debug(f"llm response: {response}")
+        logger.debug(f"outline: {self._outline}")
+        logger.debug(f"article: {self._article}")
+        logger.debug(f"controller editing decision: {response}")
 
         if "KEEP EDITING" in response:
             return []
