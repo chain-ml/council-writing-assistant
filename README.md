@@ -5,7 +5,7 @@ A customized research writing assistant implemented in Council.
 ## Requirements
 
 A Python environment with council 0.0.7 installed, i.e.
-`pip install council==0.0.7`
+`pip install council-ai==0.0.7`
 
 Rename the file `.env.example` to `.env` and fill in your OpenAI API key.
 
