@@ -34,6 +34,7 @@ class OutlineWriterSkill(SkillBase):
         $instructions
 
         ## NEW OR IMPROVED OUTLINE
+        ```markdown
         """)
 
     def execute(self, context: ChainContext, _budget: Budget) -> ChatMessage:
@@ -111,6 +112,7 @@ class SectionWriterSkill(SkillBase):
         $instructions
 
         ## REVISED ARTICLE
+        ```markdown
         """)
 
     def execute(self, context: ChainContext, _budget: Budget) -> ChatMessage:

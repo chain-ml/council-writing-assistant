@@ -199,6 +199,7 @@ class WritingAssistantController(ControllerBase):
         $possible_outlines
 
         ## OUTLINE
+        ```markdown
         """)
 
         if len(outlines) > 0:
@@ -235,6 +236,7 @@ class WritingAssistantController(ControllerBase):
         $partial_articles
 
         ## ARTICLE
+        ```markdown
         """)
 
         if len(articles) > 0:
