@@ -122,12 +122,10 @@ class WritingAssistantController(ControllerBase):
         filtered.sort(key=lambda item: item[1], reverse=True)
 
         result = []
-        print("CONTROLLER")
         for chain, score, instruction in filtered: 
             initial_state = ChatMessage.chain(
                 message=instruction, data={"article": self._article, "outline": self._outline, "iteration": self._iteration}
             )
-            print(f"{chain.name};{score};{instruction}")
             exec_unit = ExecutionUnit(
                 chain,
                 budget,
@@ -147,7 +145,6 @@ class WritingAssistantController(ControllerBase):
             chain = next(filter(lambda item: item.name == name, chains))
             result = Option.some((chain, int(score), instruction))
         except Exception as e:
-            print(e)
             logger.error(f"Controller parsing error: {e}.\n{line}")
         finally:
             return result
@@ -299,11 +296,7 @@ class WritingAssistantController(ControllerBase):
 
         response = self._llm.post_chat_request(messages)[0]
         logger.debug(f"outline: {self._outline}")
-        print("OUTLINE")
-        print(self._outline)
         logger.debug(f"article: {self._article}")
-        print("ARTICLE")
-        print(self._article)
         logger.debug(f"controller editing decision: {response}")
 
         if "KEEP EDITING" in response:

@@ -1,6 +1,0 @@
-# WritingAssistantAgent Implementation
-
-
-```python
-# code
-```
