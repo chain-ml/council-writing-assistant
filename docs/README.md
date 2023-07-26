@@ -4,7 +4,7 @@
 
 ## Tutorial Overview
 
-This tutorial describes the process and implementation details for a more advanced use case for Council: a **Research Writing Assistant** that can **iteratively plan, write, and revise** research articles in in markdown format. The tutorial is structured to give you example for the order in which you might design and implement your own advanced use cases and Agents.
+This tutorial describes the process and implementation details for a more advanced use case for Council: a **Research Writing Assistant** that can **iteratively plan, write, and revise** research articles in in markdown format. The tutorial is structured to give you an example for the order in which you might design and implement your own advanced use cases and Agents.
 
 If you haven't already, please review the [First Example](https://council.dev/en/stable/getting_started/first_example.html) in the Council [docs](https://council.dev/en/stable/index.html).
 
