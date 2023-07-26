@@ -32,4 +32,4 @@ Rename the file `.env.example` to `.env` and fill in your OpenAI API key.
 Create and interact with an Agent using `run_agent.ipynb`. This notebook implements the Agent developed in the [tutorial](./docs).
 
 ### Command Line App
-Interact with a ResearchWritingAssistant Agent on your commant line by running `python run_agent.py`
+Interact with a ResearchWritingAssistant Agent on your command line by running `python run_agent.py`
