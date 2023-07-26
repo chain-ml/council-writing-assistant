@@ -213,11 +213,13 @@ Logs
 [2023-07-26 13:08:26-0400 INFO MainThread council.agents.agent:execute:88] message="agent execution ended"
 ```
 
-Output
+Get the revised Article
 
 ```python
 print(result.messages[-1].message.message)
 ```
+
+After a second iteration, the Article is expanded.
 
 ```
 # The History of Video Games: A Detailed Exploration
@@ -267,6 +269,6 @@ However, the impact of video games on society is not without controversy. Critic
 From the simple games of the 1950s to the immersive digital worlds of today, the history of video games is a testament to the power of innovation and creativity. As we look to the future, it's exciting to imagine what the next chapter in this dynamic industry will bring.
 ```
 
-## Remarks
+## Conclusion
 
-After a second iteration, the Article is expanded. Feel free to keep exploring this example in the notebook [run_agent.ipynb](../run_agent.ipynb)
+This marks the end of the tutorial. Feel free to keep exploring this example in the notebook [run_agent.ipynb](../run_agent.ipynb) by asking for more edits. You can also try running the Agent with your own request. Thanks for reading!
