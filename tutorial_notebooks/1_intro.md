@@ -19,7 +19,7 @@ As such, our solution will have these components:
 
 Before diving into the code, let's take a look at our solution architecture. Dotted lines indicate conditional/flexible flow, while solid lines always execute.
 
-<img src="mermaid-diagram-2023-07-25-145533.svg" alt="SVG Image" width=600>
+<img src="./img/mermaid-diagram-2023-07-25-145533.svg" alt="SVG Image" width=600>
 
 **User Messages** will first be handled by the Controller - specifically its `get_plan` function. It uses an LLM call to create an execution plan that involves its Chains. In contrast to Council's built-in LLMController, our custom Controller will generate an execution plan that includes **instructions** and other **state values**. In other words, the Controller will decide not only which Chains to add to the execution plan, but also *how* to execute them. 
 
