@@ -210,4 +210,4 @@ class OutlineWriterSkill(SkillBase):
         )
 ```
 
-In the next part, we will define one more skill: **ArticleSectionWriterSkill**
+In the [next part](./3_article_section_writer_skill.md), we will define one more skill: **ArticleSectionWriterSkill**
