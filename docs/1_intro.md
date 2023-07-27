@@ -19,8 +19,6 @@ As such, our solution will have these components:
 
 Before diving into the code, let's take a look at our solution architecture. Dotted lines indicate conditional/flexible flow, while solid lines always execute.
 
-<!-- <img src="./img/mermaid-diagram-2023-07-25-145533.svg" alt="SVG Image" width=600> -->
-
 ```mermaid
 graph TD
   subgraph WritingAssistantAgent
