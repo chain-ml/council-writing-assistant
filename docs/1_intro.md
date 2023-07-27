@@ -5,7 +5,7 @@
 Council is an agent-based framework for composable AI. It provides an opinionated but flexible set of abstractions that encourages the division of AI tasks into more specialized functions and roles. This tutorial is the first in a series that will explore how Council can be used to create a powerful research assistant. Over the next few weeks, we will extend the tutorial with lots of new features. If you haven't read the **Getting Started** material, we recommend going back to read those first. 
 
 ## Motivation
-Suppose that you want to ask an LLM to "Write a research article about the history of video games." This is quite a high-level goal to give an LLM. That said, GPT-4 will handle this by writing a coherent article with around 10 top level sections consisting of one paragaraph each. While certainly impressive, we think that GPT-4 and other LLMs can do better and go further with a little bit of *planning*. Using Council, and especially the **Controller** abstraction, we can implement a custom agent that leverages planning to write more detailed articles. 
+Suppose that you want to ask an LLM to "Write a detailed research article about the history of box manufacturing." This is quite a high-level goal to give an LLM. That said, GPT-4 will handle this by writing a coherent and fairly detailed article. While certainly impressive, we think that GPT-4 and other LLMs can do better and go further with a little bit of *planning*. Using Council, and especially the **Controller** abstraction, we can implement a custom agent that leverages planning to write more detailed articles. 
 
 ## Solution Architecture
 
