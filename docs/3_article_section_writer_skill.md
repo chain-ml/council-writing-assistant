@@ -19,12 +19,12 @@ Once again, we'll start by designing our prompts for this skill.
 system_prompt = """You are an expert research writer and editor. 
 Your role is to write or revise detailed sections of research articles in markdown format."""
 
-main_prompt_template = Template("""
+self.main_prompt_template = Template("""
 # Task Description
-Your task is to write specific sections of research articles using your 
-own knowledge or using information available using various sources. 
-First consider the CONVERSATION HISTORY, ARTICLE OUTLINE, ARTICLE, COMMENTS, and INSTRUCTIONS.
-Then revise the article according to the context and instructions provided below. 
+Your task is to write specific sections of research articles using your own knowledge.
+First consider the CONVERSATION HISTORY, ARTICLE OUTLINE, ARTICLE, and INSTRUCTIONS.
+Then revise the article according to the context and INSTRUCTIONS provided below.
+All headings, sections, and subsections must consist of at least three detailed paragraphs each.
 The entire REVISED ARTICLE should be written using markdown formatting. 
 
 ## CONVERSATION HISTORY
@@ -40,6 +40,7 @@ $article
 $instructions
 
 ## REVISED ARTICLE
+```markdown
 """)
 ```
 
@@ -143,10 +144,10 @@ class SectionWriterSkill(SkillBase):
 
         self.main_prompt_template = Template("""
         # Task Description
-        Your task is to write specific sections of research articles using your own knowledge 
-        or using information available using various sources. 
-        First consider the CONVERSATION HISTORY, ARTICLE OUTLINE, ARTICLE, COMMENTS, and INSTRUCTIONS.
-        Then revise the article according to the context and instructions provided below. 
+        Your task is to write specific sections of research articles using your own knowledge.
+        First consider the CONVERSATION HISTORY, ARTICLE OUTLINE, ARTICLE, and INSTRUCTIONS.
+        Then revise the article according to the context and INSTRUCTIONS provided below.
+        All headings, sections, and subsections must consist of at least three detailed paragraphs each.
         The entire REVISED ARTICLE should be written using markdown formatting. 
 
         ## CONVERSATION HISTORY
@@ -162,6 +163,7 @@ class SectionWriterSkill(SkillBase):
         $instructions
 
         ## REVISED ARTICLE
+        ```markdown
         """)
 
     def execute(self, context: ChainContext, _budget: Budget) -> ChatMessage:

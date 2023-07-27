@@ -11,9 +11,9 @@ This repository provides a reference implementation of a Research Writing Assist
 Given a high-level research task, e.g.
 
 ```
-> Write a detailed research article about the history of video games.
+> Write a detailed research article about the history of box manufacturing.
 ```
-the Agent produces a complete [article](./docs/example_article.md) in response.
+the Agent produces a complete [article](./docs/example_article.md) in response. Compare this to an [article](./docs/example_article_gpt4.md) produced by GPT-4 using the same prompt.
 
 ## Tutorial
 

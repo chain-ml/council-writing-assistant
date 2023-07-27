@@ -20,9 +20,51 @@ class OutlineWriterSkill(SkillBase):
         self.main_prompt_template = Template("""
         # Task Description
         Your task is to write or revise the outline of a research article.
-        First consider the CONVERSATION HISTORY, ARTICLE OUTLINE, and COMMENTS.
+        First consider the CONVERSATION HISTORY and ARTICLE OUTLINE.
         Then consider the INSTRUCTIONS and write a NEW OR IMPROVED OUTLINE for the article.
         Always write the outline in markdown using appropriate section headers.
+        Make sure that every section has at least three relevant subsections.
+       The NEW OR IMPROVED OUTLINE must only include section or subsection headers.
+                                             
+        ## BEGIN EXAMPLE ##
+
+        ## CONVERSATION HISTORY
+        ['ChatMessageKind.User: Write a detailed research article about the history of video games.']
+
+        ## ARTICLE OUTLINE
+
+        ## INSTRUCTIONS
+        Create an outline for the research article about the history of video games. The outline should include sections such as Introduction, Early History, Evolution of Video Games, Impact on Society, and Conclusion.
+
+        ## NEW OR IMPROVED OUTLINE
+        ```markdown          
+        # Introduction
+        ## Brief overview of the topic
+        ## Importance of studying the history of video games
+        ## Scope of the research
+
+        # Early History of Video Games
+        ## Pre-digital era games
+        ## Inception of digital video games
+        ## Key pioneers and their contributions
+
+        # Evolution of Video Games
+        ## Transition from arcade to home consoles
+        ## Impact of technological advancements on game development
+        ## Emergence of different gaming genres
+
+        # Impact on Society
+        ## Influence on popular culture
+        ## Economic impact
+        ## Psychological effects of video gaming
+
+        # Conclusion
+        ## Recap of the evolution and impact of video games
+        ## Current trends and future prospects
+        ## Final thoughts and reflections
+        ```
+        
+        ## END EXAMPLE ##
 
         ## CONVERSATION HISTORY
         $conversation_history
@@ -71,7 +113,7 @@ class OutlineWriterSkill(SkillBase):
             ),
         ]
 
-        llm_response = self.llm.post_chat_request(messages=messages_to_llm)[0]
+        llm_response = self.llm.post_chat_request(messages=messages_to_llm, temperature=0.1)[0]
 
         return ChatMessage.skill(
             source=self.name,
@@ -93,10 +135,10 @@ class SectionWriterSkill(SkillBase):
 
         self.main_prompt_template = Template("""
         # Task Description
-        Your task is to write specific sections of research articles using your own knowledge 
-        or using information available using various sources. 
-        First consider the CONVERSATION HISTORY, ARTICLE OUTLINE, ARTICLE, COMMENTS, and INSTRUCTIONS.
-        Then revise the article according to the context and instructions provided below. 
+        Your task is to write specific sections of research articles using your own knowledge.
+        First consider the CONVERSATION HISTORY, ARTICLE OUTLINE, ARTICLE, and INSTRUCTIONS.
+        Then revise the article according to the context and INSTRUCTIONS provided below.
+        All headings, sections, and subsections must consist of at least three detailed paragraphs each.
         The entire REVISED ARTICLE should be written using markdown formatting. 
 
         ## CONVERSATION HISTORY
@@ -149,7 +191,7 @@ class SectionWriterSkill(SkillBase):
             ),
         ]
 
-        llm_response = self.llm.post_chat_request(messages=messages_to_llm)[0]
+        llm_response = self.llm.post_chat_request(messages=messages_to_llm, temperature=0.1)[0]
 
         return ChatMessage.skill(
             source=self.name,
