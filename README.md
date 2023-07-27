@@ -21,8 +21,8 @@ For a complete tutorial that breaks down the design and implementation of the Re
 
 ## Requirements
 
-A Python environment with council 0.0.7 installed, i.e.
-`pip install council-ai==0.0.7`
+A Python environment with council 0.0.8 installed, i.e.
+`pip install council-ai==0.0.8`
 
 Rename the file `.env.example` to `.env` and fill in your OpenAI API key.
 
