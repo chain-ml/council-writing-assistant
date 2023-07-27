@@ -36,3 +36,5 @@ class BasicEvaluatorWithSource(EvaluatorBase):
             )
         return result
 ```
+
+In the next and final section, we'll put everything together into an [Agent](./6_agent.md).
