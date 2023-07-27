@@ -220,10 +220,10 @@ After 2 iterations, the Article has a lot more detail. It better reflects the Ou
 ## Next Steps
 
 The remainder of this tutorial breaks down the [solution](https://github.com/chain-ml/council-writing-assistant) sequentially:
-1. [Outline Writer Skill](./2_outline_writer_skill.md)
-2. [Section Writer Skill](./3_article_section_writer_skill.md)
-3. [Controller](./4_controller.md)
-4. [Evaluator](./5_evaluator.md)
-5. [Agent App](./6_agent.md)
+2. [Outline Writer Skill](./2_outline_writer_skill.md)
+3. [Section Writer Skill](./3_article_section_writer_skill.md)
+4. [Controller](./4_controller.md)
+5. [Evaluator](./5_evaluator.md)
+6. [Agent App](./6_agent.md)
 
 
