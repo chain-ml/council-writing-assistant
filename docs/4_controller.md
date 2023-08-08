@@ -87,7 +87,7 @@ system_prompt = "You are the Controller module for an AI assistant built to writ
 main_prompt_template = Template("""
 # Task Description
 Your task is to decide how best to write or revise the ARTICLE. Considering the ARTICLE OUTLINE, ARTICLE, and the CONVERSATION HISTORY,
-use your avaiable CHAINS to decide what steps to take next. You are not responsible for writing any sections,
+use your available CHAINS to decide what steps to take next. You are not responsible for writing any sections,
 you are only responsible for deciding what to do next. You will delegate work to other agents via CHAINS.
 
 # Instructions
@@ -106,13 +106,13 @@ $chains
 ## CONVERSATION HISTORY
 $conversation_history
 
-## ARTCILE OUTLINE
+## ARTICLE OUTLINE
 $outline
 
 ## ARTICLE
 $article
 
-# Contoller Decision formatted precisely as: {chain name};{score out of 10};{instructions on a single line}
+# Controller Decision formatted precisely as: {chain name};{score out of 10};{instructions on a single line}
 """)
 ```
 
@@ -148,7 +148,7 @@ Next we post a chat request to the LLM with our formatted messages:
 
 
 ```python
-response = self._llm.post_chat_request(messages)[0]
+response = self._llm.post_chat_request(messages).first_choice
 ```
 
 The next step is to parse the LLM's response and create a plan, i.e. a list of `ExecutionUnits`. 
@@ -313,7 +313,7 @@ if len(outlines) > 1:
             )
         ),
     ]
-    response = self._llm.post_chat_request(messages)[0]
+    response = self._llm.post_chat_request(messages).first_choice
     self._outline = response
 elif len(outlines) == 1:
     self._outline = outlines[0]
@@ -361,7 +361,7 @@ if len(articles) > 1:
             )
         ),
     ]
-    response = self._llm.post_chat_request(messages)[0]
+    response = self._llm.post_chat_request(messages).first_choice
     self._article = response
 elif len(articles) == 1:
     self._article = articles[0]
@@ -404,7 +404,7 @@ You must be careful and accurate when completing the CHECK LIST.
 - If the ARTICLE is missing SECTIONS or SUBSECTIONS from the ARTICLE OUTLINE, KEEP EDITING.
 - If the ARTICLE has any sections or subsections with fewer than three detailed paragraphs, KEEP EDITING.
 
-## ARTCILE OUTLINE
+## ARTICLE OUTLINE
 $outline
 
 ## ARTICLE
@@ -429,7 +429,7 @@ messages = [
     ),
 ]
 
-response = self._llm.post_chat_request(messages)[0]
+response = self._llm.post_chat_request(messages).first_choice
 logger.debug(f"llm response: {response}")
 
 if "KEEP EDITING" in response:
@@ -523,7 +523,7 @@ class WritingAssistantController(ControllerBase):
         ## ARTICLE
         $article
 
-        # Contoller Decision formatted precisely as: {chain name};{score out of 10};{instructions on a single line}
+        # Controller Decision formatted precisely as: {chain name};{score out of 10};{instructions on a single line}
         """)
 
         # Increment iteration
@@ -549,7 +549,7 @@ class WritingAssistantController(ControllerBase):
             ),
         ]
 
-        response = self._llm.post_chat_request(messages)[0]
+        response = self._llm.post_chat_request(messages).first_choice
         logger.debug(f"controller get_plan response: {response}")
 
         parsed = response.splitlines()
@@ -657,7 +657,7 @@ class WritingAssistantController(ControllerBase):
                     )
                 ),
             ]
-            response = self._llm.post_chat_request(messages)[0]
+            response = self._llm.post_chat_request(messages).first_choice
             self._outline = response
 
         ### Article Aggregation
@@ -700,7 +700,7 @@ class WritingAssistantController(ControllerBase):
                     )
                 ),
             ]
-            response = self._llm.post_chat_request(messages)[0]
+            response = self._llm.post_chat_request(messages).first_choice
             self._article = response
 
         ### Decide whether to keep iterating or to return the article
@@ -732,7 +732,7 @@ class WritingAssistantController(ControllerBase):
         - If the ARTICLE is missing SECTIONS or SUBSECTIONS from the ARTICLE OUTLINE, KEEP EDITING.
         - If the ARTICLE has any sections or subsections with fewer than three detailed paragraphs, KEEP EDITING.
 
-        ## ARTCILE OUTLINE
+        ## ARTICLE OUTLINE
         $outline
 
         ## ARTICLE
@@ -757,7 +757,7 @@ class WritingAssistantController(ControllerBase):
             ),
         ]
 
-        response = self._llm.post_chat_request(messages)[0]
+        response = self._llm.post_chat_request(messages).first_choice
         logger.debug(f"outline: {self._outline}")
         logger.debug(f"article: {self._article}")
         logger.debug(f"controller editing decision: {response}")
