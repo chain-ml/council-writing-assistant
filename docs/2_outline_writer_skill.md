@@ -166,7 +166,8 @@ messages_to_llm = [
 ]
 
 # Send messages to LLM
-llm_response = self.llm.post_chat_request(messages=messages_to_llm)[0]
+llm_result = self.llm.post_chat_request(messages=messages_to_llm)
+llm_response = llm_result.first_choice
 
 # Format the Skill response
 return ChatMessage.skill(
@@ -279,7 +280,8 @@ class OutlineWriterSkill(SkillBase):
         ]
 
         # Send messages to LLM
-        llm_response = self.llm.post_chat_request(messages=messages_to_llm)[0]
+        llm_result = self.llm.post_chat_request(messages=messages_to_llm)
+        llm_response = llm_result.first_choice
 
         # Format the Skill response
         return ChatMessage.skill(

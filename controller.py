@@ -73,13 +73,13 @@ class WritingAssistantController(ControllerBase):
         ## CONVERSATION HISTORY
         $conversation_history
 
-        ## ARTCILE OUTLINE
+        ## ARTICLE OUTLINE
         $outline
 
         ## ARTICLE
         $article
 
-        # Contoller Decision formatted precisely as: {chain name};{score out of 10};{instructions on a single line}
+        # Controller Decision formatted precisely as: {chain name};{score out of 10};{instructions on a single line}
         """)
 
         # Increment iteration
@@ -105,7 +105,8 @@ class WritingAssistantController(ControllerBase):
             ),
         ]
 
-        response = self._llm.post_chat_request(messages)[0]
+        llm_result = self._llm.post_chat_request(messages=messages)
+        response = llm_result.first_choice
         logger.debug(f"controller get_plan response: {response}")
 
         parsed = response.splitlines()
@@ -140,7 +141,7 @@ class WritingAssistantController(ControllerBase):
 
     @staticmethod
     def parse_line(line: str, chains: List[Chain]) -> Option[Tuple[Chain, int, str]]:
-        result: Option[Tuple[Chain, int]] = Option.none()
+        result: Option[Tuple[Chain, int, str]] = Option.none()
         try:
             (name, score, instruction) = line.split(";")[:3]
             chain = next(filter(lambda item: item.name == name, chains))
@@ -213,7 +214,8 @@ class WritingAssistantController(ControllerBase):
                     )
                 ),
             ]
-            response = self._llm.post_chat_request(messages)[0]
+            llm_result = self._llm.post_chat_request(messages=messages)
+            response = llm_result.first_choice
             self._outline = response
 
         ### Article Aggregation
@@ -256,8 +258,8 @@ class WritingAssistantController(ControllerBase):
                     )
                 ),
             ]
-            response = self._llm.post_chat_request(messages)[0]
-            self._article = response
+            llm_result = self._llm.post_chat_request(messages=messages)
+            self._article = llm_result.first_choice
 
         ### Decide whether to keep iterating or to return the article
         ### to the user for review.
@@ -288,7 +290,7 @@ class WritingAssistantController(ControllerBase):
         - If the ARTICLE is missing SECTIONS or SUBSECTIONS from the ARTICLE OUTLINE, KEEP EDITING.
         - If the ARTICLE has any sections or subsections with fewer than three detailed paragraphs, KEEP EDITING.
 
-        ## ARTCILE OUTLINE
+        ## ARTICLE OUTLINE
         $outline
 
         ## ARTICLE
@@ -313,7 +315,8 @@ class WritingAssistantController(ControllerBase):
             ),
         ]
 
-        response = self._llm.post_chat_request(messages)[0]
+        llm_result = self._llm.post_chat_request(messages=messages)
+        response = llm_result.first_choice
         logger.debug(f"outline: {self._outline}")
         logger.debug(f"article: {self._article}")
         logger.debug(f"controller editing decision: {response}")

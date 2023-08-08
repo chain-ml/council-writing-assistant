@@ -117,7 +117,8 @@ messages_to_llm = [
     ),
 ]
 
-llm_response = self.llm.post_chat_request(messages=messages_to_llm)[0]
+llm_result = self.llm.post_chat_request(messages=messages_to_llm)
+llm_response = llm_result.first_choice
 
 return ChatMessage.skill(
     source=self.name,
@@ -200,7 +201,8 @@ class SectionWriterSkill(SkillBase):
             ),
         ]
 
-        llm_response = self.llm.post_chat_request(messages=messages_to_llm)[0]
+        llm_result = self.llm.post_chat_request(messages=messages_to_llm)
+        llm_response = llm_result.first_choice
 
         return ChatMessage.skill(
             source=self.name,
