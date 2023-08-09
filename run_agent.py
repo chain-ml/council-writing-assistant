@@ -38,7 +38,7 @@ from council.chains import Chain
 from council.llm.openai_llm_configuration import OpenAILLMConfiguration
 from council.llm.openai_llm import OpenAILLM
 
-from skills import SectionWriterSkill, OutlineWriterSkill
+from skills import SectionWriterSkill, OutlineWriterSkill, GoogleSearchContextBuilderSkill, GoogleNewsContextBuilderSkill
 from controller import WritingAssistantController
 from evaluator import BasicEvaluatorWithSource
 
@@ -50,6 +50,8 @@ openai_llm = OpenAILLM(config=OpenAILLMConfiguration.from_env())
 
 outline_skill = OutlineWriterSkill(openai_llm)
 writing_skill = SectionWriterSkill(openai_llm)
+google_search_context_builder_skill = GoogleSearchContextBuilderSkill()
+google_news_context_builder_skill = GoogleNewsContextBuilderSkill()
 
 # Create Chains
 
@@ -65,18 +67,30 @@ writer_chain = Chain(
     runners=[writing_skill]
 )
 
+gsearch_chain = Chain(
+    name="Google Search",
+    description="Google Search is a web search engine. Use this chain when your own knowledge is not sufficient for the article, including when you need information from after your training cutoff date.",
+    runners=[google_search_context_builder_skill]
+)
+
+gnews_chain = Chain(
+    name="Google News",
+    description="Google News is a platform aggregating timely news articles from global sources. Use this chain when your own knowledge is not sufficient for the article, including when you need information from after your training cutoff date.",
+    runners=[google_news_context_builder_skill]
+)
+
 # Create Controller
 
 controller = WritingAssistantController(
     openai_llm,
-    top_k_execution_plan=3
+    top_k_execution_plan=5
 )
 
 # Initialize Agent
 
 chat_history = ChatHistory()
 run_context = AgentContext(chat_history)
-agent = Agent(controller, [outline_chain, writer_chain], BasicEvaluatorWithSource())
+agent = Agent(controller, [outline_chain, writer_chain, gsearch_chain, gnews_chain], BasicEvaluatorWithSource())
 
 def main():
     print("Write a message to the ResearchWritingAssistant or type 'quit' to exit.")

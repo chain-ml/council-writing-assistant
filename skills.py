@@ -1,9 +1,11 @@
 from council.skills import SkillBase
-from council.contexts import ChatMessage, ChainContext
+from council.contexts import ChatMessage, ChainContext, SkillContext
 from council.runners import Budget
 from council.llm import LLMBase, LLMMessage
+from council.skills.google.google_context import GoogleSearchEngine, GoogleNewsSearchEngine
 
 from string import Template
+
 
 class OutlineWriterSkill(SkillBase):
     """Write or revise the outline of an article."""
@@ -198,4 +200,81 @@ class SectionWriterSkill(SkillBase):
             message="I've written or edited the article and placed it in the 'data' field.",
             data={'article': llm_response, 'instructions': instructions, 'iteration': iteration},
         )
-    
+
+
+class GoogleSearchContextBuilderSkill(SkillBase):
+    """Build context from Google Search results.""" 
+
+    def __init__(self):
+        """Build a new GoogleSearchContextBuilderSkill."""
+        super().__init__(name="GoogleSearchContextBuilderSkill")
+        self.gs = GoogleSearchEngine.from_env()
+
+    def execute(self, context: SkillContext, budget: Budget) -> ChatMessage:
+        """Execute `GoogleSearchContextBuilderSkill`."""
+
+        # Get the iteration
+        iteration = context.last_message.data['iteration']
+
+        # Get the instructions
+        instructions = context.last_message.message
+
+        # Run Google Search
+        search_results = self.gs.execute(query=instructions, nb_results=10)
+        response_count = len(search_results)
+        
+        # Build the context
+        context = ""
+        if response_count > 0:
+            for result in search_results:
+                r = result.dict()
+                date = r.get("date", "")
+                if date is None:
+                    date = ""
+                text = "Date: " + date + "\n" + "Content: " + "\n" + r.get("title", "") +  " " + r.get("snippet", "") + "\n\n"
+                context += text
+
+        return ChatMessage.skill(
+            source=self.name,
+            message=f"{self.name} {response_count} responses for {instructions}",
+            data={'context': context, 'instructions': instructions, 'iteration': iteration},
+        )
+
+
+class GoogleNewsContextBuilderSkill(SkillBase):
+    """Build context from Google News results.""" 
+
+    def __init__(self):
+        """Build a new GoogleNewsContextBuilderSkill."""
+        super().__init__(name="GoogleNewsContextBuilderSkill")
+        self.gn = GoogleNewsSearchEngine(period="90d", suffix="")
+
+    def execute(self, context: SkillContext, budget: Budget) -> ChatMessage:
+        """Execute `GoogleNewsContextBuilderSkill`."""
+
+        # Get the iteration
+        iteration = context.last_message.data['iteration']
+
+        # Get the instructions
+        instructions = context.last_message.message
+
+        # Run Google News
+        search_results = self.gn.execute(query=instructions, nb_results=10)
+        response_count = len(search_results)
+
+        # Build the context
+        context = ""
+        if response_count > 0:
+            for result in search_results:
+                r = result.dict()
+                date = r.get("date", "")
+                if date is None:
+                    date = ""
+                text = "Date: " + date + "\n" + "Content: " + "\n" + r.get("title", "") +  " " + r.get("snippet", "") + "\n\n"
+                context += text
+
+        return ChatMessage.skill(
+            source=self.name,
+            message=f"{self.name} {response_count} responses for {instructions}",
+            data={'context': context, 'instructions': instructions, 'iteration': iteration},
+        )

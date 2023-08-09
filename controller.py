@@ -64,6 +64,7 @@ class WritingAssistantController(ControllerBase):
         Only give instructions to relevant chains.
         You can decide to invoke the same chain multiple times, with different instructions. 
         Provide chain instructions that are relevant towards completing your TASK.
+        If invoking the Google Search or Google News chain, the instruction must be only the query to use for the tool.
         If the ARTICLE has fewer than 1500 words, give instructions to expand relevant sections.
         You will also give each chain invocation a score out of 10, so that their execution can be prioritized.
 
@@ -170,6 +171,7 @@ class WritingAssistantController(ControllerBase):
 
         outlines = []
         articles = []
+        contexts = []
         conversation_history = [f"{m.kind}: {m.message}" for m in context.chatHistory.messages]
 
         for message in current_iteration_results:
@@ -178,6 +180,8 @@ class WritingAssistantController(ControllerBase):
                 articles.append(message.data['article'])
             elif source == "OutlineWriterSkill":
                 outlines.append(message.data['outline'])
+            elif source == "GoogleSearchContextBuilderSkill" or source == "GoogleNewsContextBuilderSkill":
+                contexts.append(message.data['context'])
 
         ### Outline Aggregation
 
@@ -185,12 +189,16 @@ class WritingAssistantController(ControllerBase):
         main_prompt_template = Template("""
         # Task Description
         Your task is to combine one or more article outlines into a single one written in markdown format.
-
+        The CONTEXT contains information from search results; use the information from the CONTEXT for the outline if the date and content are relevant.
+                                        
         # Instructions
-        Read the CHAT HISTORY, EXISTING OUTLINE, and POSSIBLE OUTLINES. Then respond with a single article outline that best combines the POSSIBLE OUTLINES.
+        Read the CHAT HISTORY, CONTEXT, EXISTING OUTLINE, and POSSIBLE OUTLINES. Then respond with a single article outline that best combines the POSSIBLE OUTLINES.
 
         ## CONVERSATION HISTORY
         $conversation_history
+                                        
+        ## CONTEXT
+        $context
 
         ## EXISTING OUTLINE
         $existing_outline
@@ -208,6 +216,7 @@ class WritingAssistantController(ControllerBase):
                 LLMMessage.user_message(
                     main_prompt_template.substitute(
                         conversation_history=conversation_history,
+                        context="\n\n".join(contexts),
                         existing_outline=self._outline,
                         possible_outlines=outlines
                     )
@@ -222,14 +231,18 @@ class WritingAssistantController(ControllerBase):
         main_prompt_template = Template("""
         # Task Description
         Your task is to combine one or more partial articles into a single one written in markdown format.
+        The CONTEXT contains information from search results; use the information from the CONTEXT for the article if the date and content are relevant.
 
         # Instructions
-        Read the CHAT HISTORY, ARTICLE OUTLINE, EXISTING ARTICLE, and PARTIAL ARTICLES. 
+        Read the CHAT HISTORY, CONTEXT, ARTICLE OUTLINE, EXISTING ARTICLE, and PARTIAL ARTICLES.
         Then respond with a single article that best combines and expands the PARTIAL ARTICLES.
         The resulting ARTICLE should include all sections and subsections in the ARTICLE OUTLINE.
 
         ## CONVERSATION HISTORY
         $conversation_history
+
+        ## CONTEXT
+        $context
 
         ## ARTICLE OUTLINE
         $article_outline
@@ -250,6 +263,7 @@ class WritingAssistantController(ControllerBase):
                 LLMMessage.user_message(
                     main_prompt_template.substitute(
                         conversation_history=conversation_history,
+                        context="\n\n".join(contexts),
                         article_outline=self._outline,
                         existing_article=self._article,
                         partial_articles = articles
