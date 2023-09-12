@@ -33,7 +33,7 @@ logging.basicConfig(
 )
 logging.getLogger("council").setLevel(logging.INFO)
 
-from council.contexts import AgentContext, Budget
+from council.contexts import AgentContext, Budget, ChatHistory
 from council.agents import Agent
 from council.chains import Chain
 from council.llm.openai_llm_configuration import OpenAILLMConfiguration
@@ -90,6 +90,7 @@ agent = Agent(controller, BasicEvaluatorWithSource(), filter)
 def main():
     print("Write a message to the ResearchWritingAssistant or type 'quit' to exit.")
 
+    chat_history = ChatHistory()
     while True:
         user_input = input("\nYour message (e.g. Tell me about the history of box manufacturing.): ")
         if user_input.lower() == 'quit':
@@ -100,7 +101,8 @@ def main():
 
             s = Spinner()
             s.start()
-            run_context = AgentContext.from_user_message(user_input, Budget(1800))
+            chat_history.add_user_message(user_input)
+            run_context = AgentContext.from_chat_history(chat_history, Budget(1800))
             result = agent.execute(run_context)
             s.stop()
             print(f"\n```markdown\n{result.messages[-1].message.message}\n```\n")
