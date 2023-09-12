@@ -12,7 +12,6 @@ class OutlineWriterSkill(SkillBase):
         """Build a new OutlineWriterSkill."""
 
         super().__init__(name="OutlineWriterSkill")
-
         self.llm = self.new_monitor("llm", llm)
 
         self.system_prompt = "You are an expert research writer and editor. Your role is to create and refine the outlines of research articles in markdown format."

@@ -40,7 +40,8 @@ from council.llm.openai_llm_configuration import OpenAILLMConfiguration
 from council.llm.openai_llm import OpenAILLM
 
 from skills import SectionWriterSkill, OutlineWriterSkill
-from controller import WritingAssistantController, WritingAssistantFilter
+from controller import WritingAssistantController
+from filter import WritingAssistantFilter
 from evaluator import BasicEvaluatorWithSource
 
 import dotenv
