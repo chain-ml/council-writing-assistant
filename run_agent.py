@@ -2,8 +2,6 @@ import itertools
 import threading
 import time
 
-import council.contexts
-
 
 class Spinner:
     def __init__(self, message="Working..."):
@@ -79,8 +77,8 @@ controller = WritingAssistantController(
 # Create Filter
 
 filter = WritingAssistantFilter(
-    controller,
     openai_llm,
+    controller.state
 )
 
 # Initialize Agent

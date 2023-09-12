@@ -13,12 +13,24 @@ from typing import List, Tuple
 logger = logging.getLogger("council")
 
 
+class AppState:
+    iteration: int
+    outline: str
+    article: str
+
+    def __init__(self):
+        self.iteration = 0
+        self.outline = ""
+        self.article = ""
+
+
 class WritingAssistantController(ControllerBase):
     """
     A controller that uses an LLM to decide the execution plan
     """
 
     _llm: Monitored[LLMBase]
+    state: AppState
 
     def __init__(
         self,
@@ -41,10 +53,8 @@ class WritingAssistantController(ControllerBase):
         self._response_threshold = response_threshold
         self._top_k = top_k_execution_plan
 
-        # Controller state variables 
-        self._article = ""
-        self._outline = ""
-        self._iteration = 0
+        # Controller state variables
+        self.state = AppState()
 
     def _execute(self, context: AgentContext) -> List[ExecutionUnit]:
         
@@ -57,7 +67,7 @@ class WritingAssistantController(ControllerBase):
         main_prompt_template = Template("""
         # Task Description
         Your task is to decide how best to write or revise the ARTICLE. Considering the ARTICLE OUTLINE, ARTICLE, and the CONVERSATION HISTORY,
-        use your avaiable CHAINS to decide what steps to take next. You are not responsible for writing any sections,
+        use your available CHAINS to decide what steps to take next. You are not responsible for writing any sections,
         you are only responsible for deciding what to do next. You will delegate work to other agents via CHAINS.
 
         # Instructions
@@ -86,7 +96,7 @@ class WritingAssistantController(ControllerBase):
         """)
 
         # Increment iteration
-        self._iteration += 1
+        self.state.iteration += 1
 
         # Get the Chain details
         chain_details = "\n ".join(
@@ -101,8 +111,8 @@ class WritingAssistantController(ControllerBase):
             LLMMessage.user_message(
                 main_prompt_template.substitute(
                     chains=chain_details,
-                    outline=self._outline,
-                    article=self._article,
+                    outline=self.state.outline,
+                    article=self.state.article,
                     conversation_history=conversation_history,
                 )
             ),
@@ -114,7 +124,7 @@ class WritingAssistantController(ControllerBase):
         )
 
         response = llm_result.first_choice
-        logger.debug(f"controller get_plan response: {response}")
+        logger.debug(f"controller response: {response}")
 
         parsed = response.splitlines()
         parsed = [p for p in parsed if len(p) > 0]
@@ -133,7 +143,7 @@ class WritingAssistantController(ControllerBase):
         result = []
         for chain, score, instruction in filtered: 
             initial_state = ChatMessage.chain(
-                message=instruction, data={"article": self._article, "outline": self._outline, "iteration": self._iteration}
+                message=instruction, data={"article": self.state.article, "outline": self.state.outline, "iteration": self.state.iteration}
             )
             exec_unit = ExecutionUnit(
                 chain,
@@ -159,9 +169,9 @@ class WritingAssistantController(ControllerBase):
 
 
 class WritingAssistantFilter(FilterBase):
-    def __init__(self, controller: WritingAssistantController, llm: LLMBase):
+    def __init__(self, llm: LLMBase, state: AppState):
         super().__init__()
-        self._controller = controller
+        self.state = state
         self._llm = self.new_monitor("llm", llm)
 
     def _execute(self, context: AgentContext) -> List[ScoredChatMessage]:
@@ -176,7 +186,7 @@ class WritingAssistantFilter(FilterBase):
         current_iteration_results = []
         for scored_result in all_eval_results:
             message = scored_result.message
-            if message.data['iteration'] == self._controller._iteration:
+            if message.data['iteration'] == self.state.iteration:
                 current_iteration_results.append(message)
 
         ## If multiple outlines or articles were generated in the last iteration, 
@@ -222,7 +232,7 @@ class WritingAssistantFilter(FilterBase):
                 LLMMessage.user_message(
                     main_prompt_template.substitute(
                         conversation_history=conversation_history,
-                        existing_outline=self._controller._outline,
+                        existing_outline=self.state.outline,
                         possible_outlines=outlines
                     )
                 ),
@@ -232,7 +242,7 @@ class WritingAssistantFilter(FilterBase):
                 messages=messages
             )
             response = llm_result.first_choice
-            self._controller._outline = response
+            self.state.outline = response
 
         ### Article Aggregation
 
@@ -268,8 +278,8 @@ class WritingAssistantFilter(FilterBase):
                 LLMMessage.user_message(
                     main_prompt_template.substitute(
                         conversation_history=conversation_history,
-                        article_outline=self._controller._outline,
-                        existing_article=self._controller._article,
+                        article_outline=self.state.outline,
+                        existing_article=self.state.article,
                         partial_articles = articles
                     )
                 ),
@@ -277,7 +287,7 @@ class WritingAssistantFilter(FilterBase):
             llm_result = self._llm.inner.post_chat_request(
                 context=LLMContext.from_context(context, self._llm),
                 messages=messages)
-            self._article = llm_result.first_choice
+            self.state.article = llm_result.first_choice
 
         ### Decide whether to keep iterating or to return the article
         ### to the user for review.
@@ -326,8 +336,8 @@ class WritingAssistantFilter(FilterBase):
             LLMMessage.system_message(system_prompt),
             LLMMessage.user_message(
                 main_prompt_template.substitute(
-                    article=self._controller._article,
-                    outline=self._controller._outline,
+                    article=self.state.article,
+                    outline=self.state.outline,
                     conversation_history=conversation_history,
                 )
             ),
@@ -337,11 +347,11 @@ class WritingAssistantFilter(FilterBase):
             context=LLMContext.from_context(context, self._llm),
             messages=messages)
         response = llm_result.first_choice
-        logger.debug(f"outline: {self._controller._outline}")
-        logger.debug(f"article: {self._controller._article}")
+        logger.debug(f"outline: {self.state.outline}")
+        logger.debug(f"article: {self.state.article}")
         logger.debug(f"controller editing decision: {response}")
 
-        if "KEEP EDITING" in response:
+        if "KEEP EDITING" in response and context.iteration_count < 2:
             return []
         else:
-            return [ScoredChatMessage(ChatMessage(message=self._article, kind=ChatMessageKind.Agent), 1.0)]
+            return [ScoredChatMessage(ChatMessage(message=self.state.article, kind=ChatMessageKind.Agent), 1.0)]
