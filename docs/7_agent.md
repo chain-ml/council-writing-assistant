@@ -1,6 +1,6 @@
 # WritingAssistantAgent Implementation
 
-Now that we've defined all of the components of our solution, we can combine them into a Council Agent.
+Now that we've defined all the components of our solution, we can combine them into a Council Agent.
 
 ## Setup
 
@@ -12,7 +12,7 @@ First, we'll set up logging.
 import logging
 
 logging.basicConfig(
-    format="[%(asctime)s %(levelname)s %(threadName)s %(name)s:%(funcName)s:%(lineno)s] %(message)s",
+    format="[%(name)s:%(funcName)s:] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S%z",
 )
 logging.getLogger("council").setLevel(logging.INFO)
@@ -23,8 +23,7 @@ Next, we'll import classes from the Council framework and our custom components.
 ```python
 # Council imports
 
-from council.runners import Budget
-from council.contexts import AgentContext, ChatHistory
+from council.contexts import AgentContext, Budget
 from council.agents import Agent
 from council.chains import Chain
 from council.llm.openai_llm_configuration import OpenAILLMConfiguration
@@ -32,6 +31,7 @@ from council.llm.openai_llm import OpenAILLM
 
 from skills import SectionWriterSkill, OutlineWriterSkill
 from controller import WritingAssistantController
+from filter import WritingAssistantFilter
 from evaluator import BasicEvaluatorWithSource
 ```
 
@@ -63,7 +63,7 @@ Next, we'll create simple Chains to wrap those skills.
 
 outline_chain = Chain(
     name="Outline Writer",
-    description="Write or revise the outline (i.e. section headers) of a research article in markdown format. Only use this chain when the ARTICLE OUTLINE is missing or incomplete.",
+    description="Write or revise the outline (i.e. section headers) of a research article in markdown format. Always give this Chain the highest score when there should be structural changes to the article (e.g. new sections)",
     runners=[outline_skill]
 )
 
@@ -81,7 +81,19 @@ And now the Controller.
 
 controller = WritingAssistantController(
     openai_llm,
+    [outline_chain, writer_chain],
     top_k_execution_plan=3
+)
+```
+
+The Filter.
+
+```python
+# Create Filter
+
+filter = WritingAssistantFilter(
+    openai_llm,
+    controller.state
 )
 ```
 
@@ -90,9 +102,7 @@ And finally the Agent.
 ```python
 # Initialize Agent
 
-chat_history = ChatHistory()
-run_context = AgentContext(chat_history)
-agent = Agent(controller, [outline_chain, writer_chain], BasicEvaluatorWithSource())
+agent = Agent(controller, BasicEvaluatorWithSource(), filter)
 ```
 
 ## Running the Agent
@@ -104,8 +114,9 @@ Now we're ready to interact with our Agent.
 ```python
 # Run Agent
 
-chat_history.add_user_message("Write a detailed research article about the history of box manufacturing.")
-result = agent.execute(run_context, Budget(1800))
+user_message = "Write a detailed research article about the history of box manufacturing."
+run_context = AgentContext.from_user_message(user_message, Budget(1800))
+result = agent.execute(run_context)
 ```
 
 And let's get the outputs:
@@ -181,8 +192,9 @@ In conclusion, the evolution of box manufacturing offers a fascinating glimpse i
 Let's send another message to our Agent:
 
 ```python
-chat_history.add_user_message("Can you please add a section (including subsections) on boxes in popular culture?")
-result = agent.execute(run_context, Budget(600))
+user_message = "Can you please add a section (including subsections) on boxes in popular culture?"
+run_context = AgentContext.from_user_message(user_message, Budget(1800))
+result = agent.execute(run_context)
 ```
 
 And then we'll get the revised Article:

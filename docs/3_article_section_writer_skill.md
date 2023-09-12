@@ -5,8 +5,7 @@ Let's continue by implementing a Skill for writing or revising article sections.
 
 ```python
 from council.skills import SkillBase
-from council.contexts import ChatMessage, ChainContext
-from council.runners import Budget
+from council.contexts import ChatMessage, SkillContext, LLMContext
 from council.llm import LLMBase, LLMMessage
 
 from string import Template
@@ -16,31 +15,30 @@ Once again, we'll start by designing our prompts for this skill.
 
 
 ```python
-system_prompt = """You are an expert research writer and editor. 
-Your role is to write or revise detailed sections of research articles in markdown format."""
+self.system_prompt = "You are an expert research writer and editor. Your role is to write or revise detailed sections of research articles in markdown format."
 
 self.main_prompt_template = Template("""
-# Task Description
-Your task is to write specific sections of research articles using your own knowledge.
-First consider the CONVERSATION HISTORY, ARTICLE OUTLINE, ARTICLE, and INSTRUCTIONS.
-Then revise the article according to the context and INSTRUCTIONS provided below.
-All headings, sections, and subsections must consist of at least three detailed paragraphs each.
-The entire REVISED ARTICLE should be written using markdown formatting. 
+    # Task Description
+    Your task is to write specific sections of research articles using your own knowledge.
+    First consider the CONVERSATION HISTORY, ARTICLE OUTLINE, ARTICLE, and INSTRUCTIONS.
+    Then revise the article according to the context and INSTRUCTIONS provided below.
+    All headings, sections, and subsections must consist of at least three detailed paragraphs each.
+    The entire REVISED ARTICLE should be written using markdown formatting. 
 
-## CONVERSATION HISTORY
-$conversation_history
+    ## CONVERSATION HISTORY
+    $conversation_history
 
-## ARTICLE OUTLINE
-$outline
+    ## ARTICLE OUTLINE
+    $outline
 
-## ARTICLE
-$article
+    ## ARTICLE
+    $article
 
-## INSTRUCTIONS
-$instructions
+    ## INSTRUCTIONS
+    $instructions
 
-## REVISED ARTICLE
-```markdown
+    ## REVISED ARTICLE
+    ```markdown
 """)
 ```
 
@@ -57,17 +55,14 @@ class SectionWriterSkill(SkillBase):
         """Build a new SectionWriterSkill."""
 
         super().__init__(name="SectionWriterSkill")
-        
-        self.llm = llm
-        self.system_prompt = "You are an expert..."
-        self.main_prompt_template = Template("# Task Description ...")
+        self.llm = self.new_monitor("llm", llm)
 ```
 
 Next we implement the skill's `execute` function.
 
 
 ```python
-def execute(self, context: ChainContext, _budget: Budget) -> ChatMessage:
+def execute(self, context: SkillContext) -> ChatMessage:
     """Execute `SectionWriterSkill`."""
 ```
 
@@ -117,7 +112,12 @@ messages_to_llm = [
     ),
 ]
 
-llm_result = self.llm.post_chat_request(messages=messages_to_llm)
+llm_result = self.llm.inner.post_chat_request(
+    context=LLMContext.from_context(context, self.llm),
+    messages=messages_to_llm,
+    temperature=0.1
+
+)
 llm_response = llm_result.first_choice
 
 return ChatMessage.skill(
@@ -138,10 +138,9 @@ class SectionWriterSkill(SkillBase):
         """Build a new SectionWriterSkill."""
 
         super().__init__(name="SectionWriterSkill")
-        self.llm = llm
+        self.llm = self.new_monitor("llm", llm)
 
-        self.system_prompt = """You are an expert research writer and editor. 
-        Your role is to write or revise detailed sections of research articles in markdown format."""
+        self.system_prompt = "You are an expert research writer and editor. Your role is to write or revise detailed sections of research articles in markdown format."
 
         self.main_prompt_template = Template("""
         # Task Description
@@ -167,7 +166,7 @@ class SectionWriterSkill(SkillBase):
         ```markdown
         """)
 
-    def execute(self, context: ChainContext, _budget: Budget) -> ChatMessage:
+    def execute(self, context: SkillContext) -> ChatMessage:
         """Execute `SectionWriterSkill`."""
 
         # Get the chat message history
@@ -191,7 +190,7 @@ class SectionWriterSkill(SkillBase):
             conversation_history=conversation_history,
             outline=outline,
             article=article,
-            revision_instructions=instructions
+            instructions=instructions
         )
 
         messages_to_llm = [
@@ -201,7 +200,12 @@ class SectionWriterSkill(SkillBase):
             ),
         ]
 
-        llm_result = self.llm.post_chat_request(messages=messages_to_llm)
+        llm_result = self.llm.inner.post_chat_request(
+            context=LLMContext.from_context(context, self.llm),
+            messages=messages_to_llm,
+            temperature=0.1
+
+        )
         llm_response = llm_result.first_choice
 
         return ChatMessage.skill(
@@ -209,7 +213,6 @@ class SectionWriterSkill(SkillBase):
             message="I've written or edited the article and placed it in the 'data' field.",
             data={'article': llm_response, 'instructions': instructions, 'iteration': iteration},
         )
-    
 ```
 
 Next we will move on to defining one of the most important parts of a Council Agent - the [Controller](./4_controller.md).

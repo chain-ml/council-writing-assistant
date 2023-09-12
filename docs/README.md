@@ -14,7 +14,8 @@ After that, we recommend reviewing this tutorial sequentially:
 3. [Section Writer Skill](./3_article_section_writer_skill.md)
 4. [Controller](./4_controller.md)
 5. [Evaluator](./5_evaluator.md)
-6. [Agent App](./6_agent.md)
+6. [Filter](./6_filter.md)
+6. [Agent App](./7_agent.md)
 
 ## Running the Agent
 
