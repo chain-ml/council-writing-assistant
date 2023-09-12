@@ -1,9 +1,9 @@
 from council.skills import SkillBase
-from council.contexts import ChatMessage, ChainContext
-from council.runners import Budget
+from council.contexts import ChatMessage, SkillContext, LLMContext
 from council.llm import LLMBase, LLMMessage
 
 from string import Template
+
 
 class OutlineWriterSkill(SkillBase):
     """Write or revise the outline of an article."""
@@ -13,7 +13,7 @@ class OutlineWriterSkill(SkillBase):
 
         super().__init__(name="OutlineWriterSkill")
 
-        self.llm = llm
+        self.llm = self.new_monitor("llm", llm)
 
         self.system_prompt = "You are an expert research writer and editor. Your role is to create and refine the outlines of research articles in markdown format."
 
@@ -79,7 +79,7 @@ class OutlineWriterSkill(SkillBase):
         ```markdown
         """)
 
-    def execute(self, context: ChainContext, _budget: Budget) -> ChatMessage:
+    def execute(self, context: SkillContext) -> ChatMessage:
         """Execute `OutlineWriterSkill`."""
 
         # Get the chat message history
@@ -113,7 +113,12 @@ class OutlineWriterSkill(SkillBase):
             ),
         ]
 
-        llm_result = self.llm.post_chat_request(messages=messages_to_llm, temperature=0.1)
+        llm_result = self.llm.inner.post_chat_request(
+            context=LLMContext.from_context(context, self.llm),
+            messages=messages_to_llm,
+            temperature=0.1
+        )
+
         llm_response = llm_result.first_choice
 
         return ChatMessage.skill(
@@ -130,7 +135,7 @@ class SectionWriterSkill(SkillBase):
         """Build a new SectionWriterSkill."""
 
         super().__init__(name="SectionWriterSkill")
-        self.llm = llm
+        self.llm = self.new_monitor("llm", llm)
 
         self.system_prompt = "You are an expert research writer and editor. Your role is to write or revise detailed sections of research articles in markdown format."
 
@@ -158,7 +163,7 @@ class SectionWriterSkill(SkillBase):
         ```markdown
         """)
 
-    def execute(self, context: ChainContext, _budget: Budget) -> ChatMessage:
+    def execute(self, context: SkillContext) -> ChatMessage:
         """Execute `SectionWriterSkill`."""
 
         # Get the chat message history
@@ -192,7 +197,12 @@ class SectionWriterSkill(SkillBase):
             ),
         ]
 
-        llm_result = self.llm.post_chat_request(messages=messages_to_llm, temperature=0.1)
+        llm_result = self.llm.inner.post_chat_request(
+            context=LLMContext.from_context(context, self.llm),
+            messages=messages_to_llm,
+            temperature=0.1
+
+        )
         llm_response = llm_result.first_choice
 
         return ChatMessage.skill(

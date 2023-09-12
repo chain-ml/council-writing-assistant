@@ -1,8 +1,9 @@
-from council.contexts import AgentContext, ScoredChatMessage, ChatMessage, ChatMessageKind
+from council.contexts import AgentContext, LLMContext, Monitored, ScoredChatMessage, ChatMessage, \
+    ChatMessageKind
 from council.chains import Chain
+from council.filters import FilterBase
 from council.llm import LLMMessage, LLMBase
 from council.utils import Option
-from council.runners import Budget
 from council.controllers import ControllerBase, ExecutionUnit
 
 import logging
@@ -11,16 +12,18 @@ from typing import List, Tuple
 
 logger = logging.getLogger("council")
 
+
 class WritingAssistantController(ControllerBase):
     """
     A controller that uses an LLM to decide the execution plan
     """
 
-    _llm: LLMBase
+    _llm: Monitored[LLMBase]
 
     def __init__(
         self,
         llm: LLMBase,
+        chains: List[Chain],
         response_threshold: float = 0,
         top_k_execution_plan: int = 5,
     ):
@@ -29,10 +32,12 @@ class WritingAssistantController(ControllerBase):
 
         Parameters:
             llm (LLMBase): the instance of LLM to use
+            chains (List[Chain]): the chains to use
             response_threshold (float): a minimum threshold to select a response from its score
             top_k_execution_plan (int): maximum number of execution plan returned
         """
-        self._llm = llm
+        super().__init__(chains)
+        self._llm = self.new_monitor("llm", llm)
         self._response_threshold = response_threshold
         self._top_k = top_k_execution_plan
 
@@ -41,9 +46,7 @@ class WritingAssistantController(ControllerBase):
         self._outline = ""
         self._iteration = 0
 
-    def get_plan(
-        self, context: AgentContext, chains: List[Chain], budget: Budget
-    ) -> List[ExecutionUnit]:
+    def _execute(self, context: AgentContext) -> List[ExecutionUnit]:
         
         """
         Planning phase.
@@ -87,11 +90,11 @@ class WritingAssistantController(ControllerBase):
 
         # Get the Chain details
         chain_details = "\n ".join(
-            [f"name: {c.name}, description: {c.description}" for c in chains]
+            [f"name: {c.name}, description: {c.description}" for c in self.chains]
         )
 
         # Get the conversation history
-        conversation_history = [f"{m.kind}: {m.message}" for m in context.chatHistory.messages]
+        conversation_history = [f"{m.kind}: {m.message}" for m in context.chat_history.messages]
 
         messages = [
             LLMMessage.system_message(system_prompt),
@@ -105,13 +108,17 @@ class WritingAssistantController(ControllerBase):
             ),
         ]
 
-        llm_result = self._llm.post_chat_request(messages=messages)
+        llm_result = self._llm.inner.post_chat_request(
+            context=LLMContext.from_context(context, self._llm),
+            messages=messages
+        )
+
         response = llm_result.first_choice
         logger.debug(f"controller get_plan response: {response}")
 
         parsed = response.splitlines()
         parsed = [p for p in parsed if len(p) > 0]
-        parsed = [self.parse_line(line, chains) for line in parsed]
+        parsed = [self.parse_line(line) for line in parsed]
 
         filtered = [
             r.unwrap()
@@ -130,7 +137,7 @@ class WritingAssistantController(ControllerBase):
             )
             exec_unit = ExecutionUnit(
                 chain,
-                budget,
+                context.budget,
                 initial_state=initial_state,
                 name=f"{chain.name}: {instruction}"
             )
@@ -139,19 +146,25 @@ class WritingAssistantController(ControllerBase):
         result = result[: self._top_k]
         return result
 
-    @staticmethod
-    def parse_line(line: str, chains: List[Chain]) -> Option[Tuple[Chain, int, str]]:
+    def parse_line(self, line: str) -> Option[Tuple[Chain, int, str]]:
         result: Option[Tuple[Chain, int, str]] = Option.none()
         try:
             (name, score, instruction) = line.split(";")[:3]
-            chain = next(filter(lambda item: item.name == name, chains))
+            chain = next(filter(lambda item: item.name == name, self.chains))
             result = Option.some((chain, int(score), instruction))
         except Exception as e:
             logger.error(f"Controller parsing error: {e}.\n{line}")
         finally:
             return result
-        
-    def select_responses(self, context: AgentContext) -> List[ScoredChatMessage]:
+
+
+class WritingAssistantFilter(FilterBase):
+    def __init__(self, controller: WritingAssistantController, llm: LLMBase):
+        super().__init__()
+        self._controller = controller
+        self._llm = self.new_monitor("llm", llm)
+
+    def _execute(self, context: AgentContext) -> List[ScoredChatMessage]:
 
         """
         Aggregation phase. 
@@ -159,11 +172,11 @@ class WritingAssistantController(ControllerBase):
         Get latest iteration results from Evaluator and aggregate if applicable.
         """
 
-        all_eval_results = sorted(context.evaluationHistory[-1], key=lambda x: x.score, reverse=True)
+        all_eval_results = sorted(context.evaluation, key=lambda x: x.score, reverse=True)
         current_iteration_results = []
         for scored_result in all_eval_results:
             message = scored_result.message
-            if message.data['iteration'] == self._iteration:
+            if message.data['iteration'] == self._controller._iteration:
                 current_iteration_results.append(message)
 
         ## If multiple outlines or articles were generated in the last iteration, 
@@ -171,7 +184,7 @@ class WritingAssistantController(ControllerBase):
 
         outlines = []
         articles = []
-        conversation_history = [f"{m.kind}: {m.message}" for m in context.chatHistory.messages]
+        conversation_history = [f"{m.kind}: {m.message}" for m in context.chat_history.messages]
 
         for message in current_iteration_results:
             source = message.source
@@ -209,14 +222,17 @@ class WritingAssistantController(ControllerBase):
                 LLMMessage.user_message(
                     main_prompt_template.substitute(
                         conversation_history=conversation_history,
-                        existing_outline=self._outline,
+                        existing_outline=self._controller._outline,
                         possible_outlines=outlines
                     )
                 ),
             ]
-            llm_result = self._llm.post_chat_request(messages=messages)
+            llm_result = self._llm.inner.post_chat_request(
+                LLMContext.from_context(context, self._llm),
+                messages=messages
+            )
             response = llm_result.first_choice
-            self._outline = response
+            self._controller._outline = response
 
         ### Article Aggregation
 
@@ -252,13 +268,15 @@ class WritingAssistantController(ControllerBase):
                 LLMMessage.user_message(
                     main_prompt_template.substitute(
                         conversation_history=conversation_history,
-                        article_outline=self._outline,
-                        existing_article=self._article,
+                        article_outline=self._controller._outline,
+                        existing_article=self._controller._article,
                         partial_articles = articles
                     )
                 ),
             ]
-            llm_result = self._llm.post_chat_request(messages=messages)
+            llm_result = self._llm.inner.post_chat_request(
+                context=LLMContext.from_context(context, self._llm),
+                messages=messages)
             self._article = llm_result.first_choice
 
         ### Decide whether to keep iterating or to return the article
@@ -308,17 +326,19 @@ class WritingAssistantController(ControllerBase):
             LLMMessage.system_message(system_prompt),
             LLMMessage.user_message(
                 main_prompt_template.substitute(
-                    article=self._article,
-                    outline=self._outline,
+                    article=self._controller._article,
+                    outline=self._controller._outline,
                     conversation_history=conversation_history,
                 )
             ),
         ]
 
-        llm_result = self._llm.post_chat_request(messages=messages)
+        llm_result = self._llm.inner.post_chat_request(
+            context=LLMContext.from_context(context, self._llm),
+            messages=messages)
         response = llm_result.first_choice
-        logger.debug(f"outline: {self._outline}")
-        logger.debug(f"article: {self._article}")
+        logger.debug(f"outline: {self._controller._outline}")
+        logger.debug(f"article: {self._controller._article}")
         logger.debug(f"controller editing decision: {response}")
 
         if "KEEP EDITING" in response:
