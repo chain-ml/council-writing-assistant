@@ -2,7 +2,7 @@
 
 In Council, **Controllers** are responsible directing application flow. While Council offers built-in Controllers for simpler applications, we are now going to implement a customized Controller that can make full use of the Skills we defined in the previous steps. 
 
-When implementing a custom Controller, the major function that requires implementation is `execute`.
+When implementing a custom Controller, the major function that requires implementation is `_execute`.
 
 To start, recall that when we defined both the OutlineWriterSkill and SectionWriterSkill, we implemented `execute` functions that expect specific information to be provided in the `context`. 
 
