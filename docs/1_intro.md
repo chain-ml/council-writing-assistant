@@ -23,8 +23,8 @@ Before diving into the code, let's take a look at our solution architecture. Dot
 graph TD
   subgraph WritingAssistantAgent
     User
-    Controller.select_responses
-    Controller.get_plan
+    Filter
+    Controller
     Evaluator
     subgraph Chains
       ArticleOutlineWriter
@@ -32,23 +32,23 @@ graph TD
     end
   end
 
-  User -->|User Message| Controller.get_plan
-  Controller.get_plan -.->|Instructions| ArticleOutlineWriter
-  Controller.get_plan -.->|Instructions| ArticleSectionWriter
+  User -->|User Message| Controller
+  Controller -.->|Instructions| ArticleOutlineWriter
+  Controller -.->|Instructions| ArticleSectionWriter
   ArticleOutlineWriter -.->|Outline| Evaluator
   ArticleSectionWriter -.->|Article Section| Evaluator
-  Evaluator -->|ScoredMessages| Controller.select_responses
-  Controller.select_responses -.->|RETURN ARTICLE| User
-  Controller.select_responses -.->|KEEP EDITING| Controller.get_plan
+  Evaluator -->|ScoredMessages| Filter
+  Filter -.->|RETURN ARTICLE| User
+  Filter -.->|KEEP EDITING| Controller
 ```
 
-**User Messages** will first be handled by the Controller - specifically its `get_plan` function. It uses an LLM call to create an execution plan that involves its Chains. In contrast to Council's built-in LLMController, our custom Controller will generate an execution plan that includes **instructions** and other **state values**. In other words, the Controller will decide not only which Chains to add to the execution plan, but also *how* to execute them. 
+**User Messages** will first be handled by the Controller. It uses an LLM call to create an execution plan that involves its Chains. In contrast to Council's built-in LLMController, our custom Controller will generate an execution plan that includes **instructions** and other **state values**. In other words, the Controller will decide not only which Chains to add to the execution plan, but also *how* to execute them. 
 
 For example, in an Agent's first iteration of handling a User Message, it may only return a plan to invoke `ArticleOutlineWriter`. In the second iteration, the Controller may return a plan to invoke the `ArticleSectionWriter` many times, each with instructions for different sections to write. 
 
-After Chains and their underlying Skills have been executed according to the Controller's plan, they will passed into an Evaluator. In this tutorial installment, we're using a very minimally customized `BasicEvaluator` - the small change will be explained later. As such, the Evaluator is effectively a pass-through for now. In the coming weeks, we'll show how customized Evalutors can significantly increase the quality of generated articles - so stay tuned for that, too!
+After Chains and their underlying Skills have been executed according to the Controller's plan, they will be passed into an Evaluator. In this tutorial installment, we're using a very minimally customized `BasicEvaluator` - the small change will be explained later. As such, the Evaluator is effectively a pass-through for now. In the coming weeks, we'll show how customized Evalutors can significantly increase the quality of generated articles - so stay tuned for that, too!
 
-After Evaluation is complete, the Controller's `select_responses` function is always invoked. This function is responsible for interpreting the Evaluator's input and deciding whether to return a result to the "requesting agent" (which could be a human user or another Council agent). In this solution, an LLM call is used to review all of the progress made so far and decide whether to `KEEP EDITING` or to `RETURN ARTICLE`. 
+After Evaluation is complete, the Filter is always invoked. the Filter is responsible for filtering the Evaluator's output and deciding whether to return a result to the "requesting agent" (which could be a human user or another Council agent). In this solution, an LLM call is used to review all the progress made so far and decide whether to `KEEP EDITING` or to `RETURN ARTICLE`. 
 
 ## Demo
 
@@ -66,9 +66,9 @@ Write a detailed research article about the history of box manufacturing.
 
 For comparison, see [here](./example_article_gpt4.md) for the output from GPT-4 using the same initial prompt. The output has 683 words.
 
-### `Controller.get_plan`
+### `Controller`
 
-The first step in Agent execution is to call the Controller's `get_plan` function. Here is the plan it returns:
+The first step in Agent execution is to call the Controller. Here is the plan it returns:
 
 ```
 Outline Writer;10;Create an outline for the research article about the history of box manufacturing. The outline should include the following sections: Introduction, Early History, Industrial Revolution, Modern Box Manufacturing, and Conclusion.
@@ -161,7 +161,7 @@ After the initial Chain executions are complete, our Agent will enter the Evalua
 
 ### Aggregation and Iteration
 
-After Evaluation is complete, the Controller's `select_responses` function will be invoked. In this solution, we've added logic to make up to three additional LLM calls to:
+After Evaluation is complete, the Filter will be invoked. In this solution, we've added logic to make up to three additional LLM calls to:
 1. Aggregate Outlines, if more than one was generated in the last iteration
 2. Aggregate Article Sections, if more than one was generated in the last iteration
 3. Decide whether the aggregated Article needs more editing or can be returned to the requesting agent
@@ -246,6 +246,5 @@ The tutorial breaks down the [solution](https://github.com/chain-ml/council-writ
 3. [Section Writer Skill](./3_article_section_writer_skill.md)
 4. [Controller](./4_controller.md)
 5. [Evaluator](./5_evaluator.md)
-6. [Agent App](./6_agent.md)
-
-
+6. [Filter](./6_filter.md)
+7. [Agent App](./7_agent.md)

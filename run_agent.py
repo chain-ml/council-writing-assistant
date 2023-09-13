@@ -2,6 +2,7 @@ import itertools
 import threading
 import time
 
+
 class Spinner:
     def __init__(self, message="Working..."):
         self.spinner_cycle = itertools.cycle(['-', '/', '|', '\\'])
@@ -23,6 +24,7 @@ class Spinner:
         # clear spinner from console
         print('\r', end='', flush=True)
 
+
 import logging
 
 logging.basicConfig(
@@ -31,8 +33,7 @@ logging.basicConfig(
 )
 logging.getLogger("council").setLevel(logging.INFO)
 
-from council.runners import Budget
-from council.contexts import AgentContext, ChatHistory
+from council.contexts import AgentContext, Budget, ChatHistory
 from council.agents import Agent
 from council.chains import Chain
 from council.llm.openai_llm_configuration import OpenAILLMConfiguration
@@ -40,6 +41,7 @@ from council.llm.openai_llm import OpenAILLM
 
 from skills import SectionWriterSkill, OutlineWriterSkill
 from controller import WritingAssistantController
+from filter import WritingAssistantFilter
 from evaluator import BasicEvaluatorWithSource
 
 import dotenv
@@ -69,18 +71,26 @@ writer_chain = Chain(
 
 controller = WritingAssistantController(
     openai_llm,
+    [outline_chain, writer_chain],
     top_k_execution_plan=3
+)
+
+# Create Filter
+
+filter = WritingAssistantFilter(
+    openai_llm,
+    controller.state
 )
 
 # Initialize Agent
 
-chat_history = ChatHistory()
-run_context = AgentContext(chat_history)
-agent = Agent(controller, [outline_chain, writer_chain], BasicEvaluatorWithSource())
+agent = Agent(controller, BasicEvaluatorWithSource(), filter)
+
 
 def main():
     print("Write a message to the ResearchWritingAssistant or type 'quit' to exit.")
 
+    chat_history = ChatHistory()
     while True:
         user_input = input("\nYour message (e.g. Tell me about the history of box manufacturing.): ")
         if user_input.lower() == 'quit':
@@ -92,11 +102,13 @@ def main():
             s = Spinner()
             s.start()
             chat_history.add_user_message(user_input)
-            result = agent.execute(run_context, Budget(900))
+            run_context = AgentContext.from_chat_history(chat_history, Budget(1800))
+            result = agent.execute(run_context)
             s.stop()
             print(f"\n```markdown\n{result.messages[-1].message.message}\n```\n")
 
     print("Goodbye!")
+
 
 if __name__ == "__main__":
     main()
