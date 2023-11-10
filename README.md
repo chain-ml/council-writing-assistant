@@ -24,7 +24,7 @@ For a complete tutorial that breaks down the design and implementation of the Re
 A Python environment with council 0.0.11 installed, i.e.
 `pip install council-ai==0.0.11`
 
-Rename the file `.env.example` to `.env` and fill in your OpenAI API key.
+Rename the file `.env.example` to `.env` and fill in your **OpenAI API key** and required **budget** in seconds for a single agent run.
 
 ## Running the Agent
 
