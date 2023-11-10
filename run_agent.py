@@ -38,15 +38,18 @@ from council.agents import Agent
 from council.chains import Chain
 from council.llm.openai_llm_configuration import OpenAILLMConfiguration
 from council.llm.openai_llm import OpenAILLM
+from council.runners.errrors import RunnerTimeoutError
 
 from skills import SectionWriterSkill, OutlineWriterSkill
 from controller import WritingAssistantController
 from filter import WritingAssistantFilter
 from evaluator import BasicEvaluatorWithSource
 
+import os
 import dotenv
 dotenv.load_dotenv()
 openai_llm = OpenAILLM(config=OpenAILLMConfiguration.from_env())
+budget = float(os.getenv('BUDGET'))
 
 # Create Skills
 
@@ -102,10 +105,21 @@ def main():
             s = Spinner()
             s.start()
             chat_history.add_user_message(user_input)
-            run_context = AgentContext.from_chat_history(chat_history, Budget(1800))
-            result = agent.execute(run_context)
-            s.stop()
-            print(f"\n```markdown\n{result.messages[-1].message.message}\n```\n")
+            run_context = AgentContext.from_chat_history(chat_history, Budget(budget))
+            
+            try:
+                result = agent.execute(run_context)
+                s.stop()
+                print(f"\n```markdown\n{result.messages[-1].message.message}\n```\n")
+            except RunnerTimeoutError:
+                s.stop()
+                print("Execution stopped due to exceeded budget. Please consider increase the budget for future runs")
+                print("Intermediate results: \n")
+                print("Outline: ")
+                print(agent.controller.state.outline)
+                print("\n\n----------------------------------------------------------\n\n")
+                print("Article: ")
+                print(agent.controller.state.article)
 
     print("Goodbye!")
 
